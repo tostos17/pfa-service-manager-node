@@ -1,0 +1,102 @@
+# PFA Academy Service Manager API Testing Suite
+# Use with VS Code / Cursor "REST Client" Extension
+
+@baseUrl = http://localhost:8080/api/v1
+@adminUsername = admin
+@adminPassword = password
+
+### 1. ADMIN LOGIN (To Retrieve Bearer Token)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}"
+}
+
+### Capture JWT Token from Login Response
+@token = {{login.response.body.token}}
+
+======================================================================
+### 2. TRAINING & ATTENDANCE MANAGEMENT APIs
+======================================================================
+
+### 2a. Retrieve All Training Sessions
+GET {{baseUrl}}/trainings
+Authorization: Bearer {{token}}
+
+### 2b. Schedule a New Training Session
+POST {{baseUrl}}/trainings
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "theme": "Counter-attacking transition drills",
+  "date": "2026-07-20",
+  "startTime": "09:00:00",
+  "endTime": "11:00:00",
+  "activitiesList": [
+    { "description": "High-intensity warm up", "duration": 20 },
+    { "description": "3v2 transition shape play", "duration": 50 },
+    { "description": "Scrimmage match", "duration": 50 }
+  ]
+}
+
+### 2c. Fetch Single Training Session Details (Roster & History)
+# Replace '1' with the ID of the scheduled training session
+GET {{baseUrl}}/trainings/1
+Authorization: Bearer {{token}}
+
+### 2d. Fetch All Eligible Coaches
+GET {{baseUrl}}/trainings/coaches
+Authorization: Bearer {{token}}
+
+### 2e. Submit Batch Attendance Sheet for Training
+# Replace '1' in the URL with the actual session ID
+POST {{baseUrl}}/trainings/1/attendance
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "records": [
+    {
+      "id": 1,
+      "attendeeType": "PLAYER",
+      "status": "PRESENT",
+      "remarks": "Solid physical test response"
+    },
+    {
+      "id": 2,
+      "attendeeType": "COACH",
+      "status": "PRESENT",
+      "remarks": "Lead tactical coordinator"
+    }
+  ]
+}
+
+======================================================================
+### 3. MATCH CENTER APIs
+======================================================================
+
+### 3a. Get All Match Fixtures
+GET {{baseUrl}}/matches
+Authorization: Bearer {{token}}
+
+### 3b. Get Concluded Match Timeline Events
+# Replace '1' with the match ID
+GET {{baseUrl}}/matches/1/timeline
+Authorization: Bearer {{token}}
+
+### 3c. Get Concluded Match Lineup Details
+# Replace '1' with the match ID
+GET {{baseUrl}}/matches/1/lineup/details
+Authorization: Bearer {{token}}
+
+======================================================================
+### 4. CATEGORIES
+======================================================================
+
+### 4a. Get All Categories
+GET {{baseUrl}}/categories
+Authorization: Bearer {{token}}

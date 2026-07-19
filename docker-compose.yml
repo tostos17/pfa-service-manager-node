@@ -19,7 +19,20 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Rebuilt Node.js Backend Application
+  # 2. Flyway Migrations Runner
+  flyway:
+    image: flyway/flyway:10.11.0-alpine
+    container_name: pfa_service_migrations
+    command: -url=jdbc:postgresql://postgres:5432/mydatabase -user=admin -password=password migrate
+    volumes:
+      - ../../java/pfa-service-manager/src/main/resources/db/migration:/flyway/sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - monitoring-network
+
+  # 3. Rebuilt Node.js Backend Application
   node-app:
     build:
       context: .
@@ -41,6 +54,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
     networks:
       - monitoring-network
 

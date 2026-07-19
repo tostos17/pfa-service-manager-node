@@ -14,6 +14,7 @@ import attendanceRouter from './controller/AttendanceController';
 import playerDataRouter from './controller/PlayerDataController';
 import infoHubRouter from './controller/InformationHubController';
 import categoryRouter from './controller/CategoryController';
+import trainingRouter from './controller/TrainingController';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use('/api/v1/matches', matchRouter);
 app.use('/api/v1/attendance', attendanceRouter);
 app.use('/api/v1/players', playerDataRouter);
 app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/trainings', trainingRouter);
 app.use('/api/v1', infoHubRouter);
 
 // Global Error Handler

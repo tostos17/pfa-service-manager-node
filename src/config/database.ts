@@ -30,6 +30,8 @@ import { Goal } from '../model/Goal';
 import { Substitution } from '../model/Substitution';
 import { MatchPhoto } from '../model/MatchPhoto';
 import { MatchVideo } from '../model/MatchVideo';
+import { TrainingSession } from '../model/TrainingSession';
+import { TrainingAttendance } from '../model/TrainingAttendance';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -41,6 +43,7 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USERNAME || 'admin',
     password: process.env.DB_PASSWORD || 'password',
     database: process.env.DB_NAME || 'mydatabase',
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     synchronize: false, // Schema is managed by Flyway migrations!
     logging: false,
     entities: [
@@ -48,7 +51,7 @@ export const AppDataSource = new DataSource({
         Session, Term, Invoice, Payment, PaymentAllocation, InvoicePayment,
         AttendanceEvent, PlayerAttendanceLine, AcademyExpense, InformationHub,
         Match, MatchEvent, MatchStateEvent, FreekickEvent, CardEvent, CornerEvent,
-        Goal, Substitution, MatchPhoto, MatchVideo
+        Goal, Substitution, MatchPhoto, MatchVideo, TrainingSession, TrainingAttendance
     ],
     migrations: [],
     subscribers: []
