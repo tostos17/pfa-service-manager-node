@@ -5,6 +5,7 @@ import { Coach } from '../model/Coach';
 import { Player } from '../model/Player';
 import { PlayerProfile, DominantFoot, Position } from '../model/PlayerProfile';
 import { Account } from '../model/Account';
+import { AppError } from '../error/AppError';
 import { Admin } from '../model/Admin';
 import { Director } from '../model/Director';
 import { Parent } from '../model/Parent';
@@ -69,16 +70,16 @@ export class AuthService {
         });
 
         if (!user) {
-            throw new Error('Bad credentials');
+            throw new AppError('Bad credentials', 401, 'Unauthorized');
         }
 
         const isMatch = await bcrypt.compare(request.password, user.password);
         if (!isMatch) {
-            throw new Error('Bad credentials');
+            throw new AppError('Bad credentials', 401, 'Unauthorized');
         }
 
         if (!user.enabled) {
-            throw new Error('User account is disabled');
+            throw new AppError('User account is disabled', 401, 'Unauthorized');
         }
 
         const token = jwt.sign(
@@ -403,6 +404,29 @@ export class AuthService {
         await parentRepository.save(parent);
 
         return { message: `Updated parent ${user.username} successfully` };
+    }
+
+    async forceChangePassword(userId: number, request: any) {
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            throw new AppError('User not found', 404, 'Not Found');
+        }
+
+        const isMatch = await bcrypt.compare(request.oldPassword, user.password);
+        if (!isMatch) {
+            throw new AppError('Incorrect temporary password', 400, 'Bad Request');
+        }
+
+        const hashedPassword = await bcrypt.hash(request.newPassword, 10);
+        user.password = hashedPassword;
+        user.requirePasswordChange = false;
+
+        await userRepository.save(user);
+        return { message: 'Password updated successfully' };
     }
 }
 

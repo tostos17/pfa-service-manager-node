@@ -240,7 +240,9 @@ export class PlayerProfileService {
             photo: player.passportUrl || null,
             age: AgeCalculator.getAgeInYearsAndDays(player.dateOfBirth),
             parentPhone: player.parent ? player.parent.phone : 'N/A',
-            category: profile.category ? profile.category.name : 'GENERAL'
+            category: profile.category ? profile.category.name : 'GENERAL',
+            id: Number(player.id),
+            status: player.status || 'ACTIVE'
         };
     }
 }

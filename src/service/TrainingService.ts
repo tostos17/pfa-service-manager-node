@@ -52,7 +52,8 @@ export class TrainingService {
                 id: Number(p.id),
                 firstName: p.firstName,
                 lastName: p.lastName,
-                playerId: p.playerId
+                playerId: p.playerId,
+                status: p.status
             })),
             eligibleCoaches: eligibleCoaches.map(c => ({
                 id: Number(c.id),

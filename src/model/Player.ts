@@ -62,6 +62,9 @@ export class Player {
     @OneToOne(() => Account, (account) => account.player, { cascade: true })
     account?: Account;
 
+    @Column({ length: 30, default: 'ACTIVE' })
+    status!: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+
     @Column({ name: 'registration_date', type: 'date', nullable: false })
     registrationDate!: string;
 }

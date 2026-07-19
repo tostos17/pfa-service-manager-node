@@ -1,5 +1,6 @@
 import { AppDataSource } from '../config/database';
 import { Player } from '../model/Player';
+import { User } from '../model/User';
 import { storageService } from './StorageService';
 
 export class PlayerDataService {
@@ -39,7 +40,8 @@ export class PlayerDataService {
             parentName: player.parent ? `${player.parent.firstName} ${player.parent.lastName}` : null,
             healthy: player.healthy,
             healthConcernDescription: player.healthConcernDescription || null,
-            passportUrl: player.passportUrl || null
+            passportUrl: player.passportUrl || null,
+            status: player.status
         }));
 
         return {
@@ -51,6 +53,29 @@ export class PlayerDataService {
             totalElements: total,
             totalPages: Math.ceil(total / pageSize)
         };
+    }
+
+    async updatePlayerStatus(id: number, status: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED') {
+        return await AppDataSource.transaction(async (transactionManager) => {
+            const playerRepository = transactionManager.getRepository(Player);
+            const userRepository = transactionManager.getRepository(User);
+
+            const player = await playerRepository.findOne({ where: { id } });
+            if (!player) {
+                throw new Error(`Player not found with ID: ${id}`);
+            }
+
+            player.status = status;
+            await playerRepository.save(player);
+
+            const user = await userRepository.findOne({ where: { id } });
+            if (user) {
+                user.enabled = (status === 'ACTIVE');
+                await userRepository.save(user);
+            }
+
+            return player;
+        });
     }
 }
 

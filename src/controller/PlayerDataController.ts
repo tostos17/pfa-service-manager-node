@@ -36,4 +36,15 @@ router.get('/', authenticateJwt, requireRoles(['ADMIN', 'DIRECTOR']), async (req
     }
 });
 
+router.put('/:id/status', authenticateJwt, requireRoles(['ADMIN']), async (req, res, next) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { status } = req.body;
+        const result = await playerDataService.updatePlayerStatus(id, status);
+        return res.json({ success: true, body: result, message: 'Player status updated successfully' });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;

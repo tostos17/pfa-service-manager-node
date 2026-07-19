@@ -84,4 +84,14 @@ router.put('/parent/:id', authenticateJwt, async (req, res, next) => {
     }
 });
 
+router.post('/force-change-password', authenticateJwt, async (req: any, res, next) => {
+    try {
+        const userId = req.user.id;
+        const result = await authService.forceChangePassword(userId, req.body);
+        return res.json({ success: true, body: result, message: 'Password updated successfully' });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;

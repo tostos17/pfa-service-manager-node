@@ -445,11 +445,54 @@ export class MatchService {
         });
     }
 
-    async updateMatchScore(matchId: number, homeTeamScore: number, awayTeamScore: number) {
+    async updateMatchScore(matchId: number, homeTeamScore: number, awayTeamScore: number, matchTime?: string) {
         const match = await this.getMatchById(matchId);
+        const oldHome = match.homeTeamScore;
+        const oldAway = match.awayTeamScore;
+
+        const isHomeOpponent = !match.isHomeMatch;
+        const isAwayOpponent = match.isHomeMatch;
+
+        let opponentScoreIncreased = false;
+        let opponentScoreDecreased = false;
+
+        if (isHomeOpponent) {
+            if (homeTeamScore > oldHome) opponentScoreIncreased = true;
+            if (homeTeamScore < oldHome) opponentScoreDecreased = true;
+        } else {
+            if (awayTeamScore > oldAway) opponentScoreIncreased = true;
+            if (awayTeamScore < oldAway) opponentScoreDecreased = true;
+        }
+
         match.homeTeamScore = homeTeamScore;
         match.awayTeamScore = awayTeamScore;
-        return await AppDataSource.getRepository(Match).save(match);
+
+        await AppDataSource.transaction(async (transactionManager) => {
+            await transactionManager.getRepository(Match).save(match);
+
+            if (opponentScoreIncreased || opponentScoreDecreased) {
+                const eventRepository = transactionManager.getRepository(MatchEvent);
+                const stateEventRepository = transactionManager.getRepository(MatchStateEvent);
+
+                const time = matchTime || '0';
+
+                const matchEvent = eventRepository.create({
+                    match,
+                    matchTime: time,
+                    eventType: 'GENERIC'
+                });
+                const savedEvent = await eventRepository.save(matchEvent);
+
+                const stateEvent = stateEventRepository.create({
+                    id: Number(savedEvent.id),
+                    stateName: opponentScoreIncreased ? 'Goal Conceded' : 'Opponent Goal Disallowed',
+                    matchEvent: savedEvent
+                });
+                await stateEventRepository.save(stateEvent);
+            }
+        });
+
+        return match;
     }
 
     async updateHalfDuration(id: number, duration: number) {
@@ -642,6 +685,16 @@ export class MatchService {
         } catch (e) {
             return t1.localeCompare(t2);
         }
+    }
+
+    async cancelMatch(matchId: number) {
+        const match = await this.getMatchById(matchId);
+        if (match.started || match.ended || match.status !== 'SCHEDULED') {
+            throw new Error('Only upcoming (SCHEDULED) matches that have not started can be cancelled.');
+        }
+        match.status = 'CANCELLED';
+        match.ended = true;
+        return await AppDataSource.getRepository(Match).save(match);
     }
 
     private parseMinutes(time: string): number {

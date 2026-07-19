@@ -89,6 +89,15 @@ router.post('/:id/end', authenticateJwt, async (req, res, next) => {
     }
 });
 
+router.post('/:id/cancel', authenticateJwt, async (req, res, next) => {
+    try {
+        const match = await matchService.cancelMatch(parseInt(req.params.id));
+        return res.json(mapToResponseDto(match));
+    } catch (err) {
+        next(err);
+    }
+});
+
 // Lineup and Match Events Management
 router.put('/:id/lineup', authenticateJwt, async (req, res, next) => {
     try {
@@ -260,8 +269,13 @@ router.post('/:id/start-second-half', authenticateJwt, async (req, res, next) =>
 
 router.put('/:id/score', authenticateJwt, async (req, res, next) => {
     try {
-        const { homeTeamScore, awayTeamScore } = req.body;
-        const match = await matchService.updateMatchScore(parseInt(req.params.id), parseInt(homeTeamScore), parseInt(awayTeamScore));
+        const { homeTeamScore, awayTeamScore, matchTime } = req.body;
+        const match = await matchService.updateMatchScore(
+            parseInt(req.params.id), 
+            parseInt(homeTeamScore), 
+            parseInt(awayTeamScore),
+            matchTime
+        );
         return res.json(mapToResponseDto(match));
     } catch (err) {
         next(err);
