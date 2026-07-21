@@ -132,7 +132,8 @@ export class PortalService {
                 },
                 paymentDate: pay.paymentDate ? new Date(pay.paymentDate).toISOString().split('T')[0] : '—',
                 paymentMethod: 'Direct Payment',
-                amount: Number(pay.amountPaid)
+                amount: Number(pay.amountPaid),
+                receiptUrl: `/finance/payments/${pay.id}/receipt`
             }));
         }
 

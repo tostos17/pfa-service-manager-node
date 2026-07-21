@@ -181,7 +181,8 @@ export class ParentProfileService {
             referenceNumber: payment.referenceNumber,
             paymentDate: payment.paymentDate,
             playerName: player ? `${player.firstName} ${player.lastName}` : 'Unknown',
-            termDisplayName: termName
+            termDisplayName: termName,
+            receiptUrl: `/finance/payments/${payment.id}/receipt`
         };
     }
 }

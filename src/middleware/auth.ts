@@ -10,12 +10,18 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const authenticateJwt = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    let token = '';
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    } else if (req.query.token) {
+        token = req.query.token as string;
+    }
+
+    if (!token) {
         return res.status(401).json({ success: false, error: 'Unauthorized', message: 'Missing token' });
     }
 
-    const token = authHeader.split(' ')[1];
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkeyformigratedpfaapp') as {
             id: number;

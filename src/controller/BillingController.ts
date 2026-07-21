@@ -65,4 +65,14 @@ router.post('/payments', authenticateJwt, requireRoles(['ADMIN', 'DIRECTOR']), a
     }
 });
 
+router.get('/payments/:id/receipt', authenticateJwt, async (req, res, next) => {
+    try {
+        const receiptHtml = await billingService.getPaymentReceiptHtml(parseInt(req.params.id));
+        res.setHeader('Content-Type', 'text/html');
+        return res.send(receiptHtml);
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;
