@@ -59,6 +59,7 @@ const connectionOptions: DataSourceOptions = process.env.DATABASE_URL
           migrations: [],
           subscribers: [],
           extra: {
+              family: 4,
               lookup: (hostname: string, options: any, callback: any) => {
                   dns.lookup(hostname, { family: 4 }, callback);
               }
