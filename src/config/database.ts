@@ -57,7 +57,12 @@ const connectionOptions: DataSourceOptions = process.env.DATABASE_URL
           logging: false,
           entities,
           migrations: [],
-          subscribers: []
+          subscribers: [],
+          extra: {
+              lookup: (hostname: string, options: any, callback: any) => {
+                  dns.lookup(hostname, { family: 4 }, callback);
+              }
+          }
       }
     : {
           type: 'postgres',
