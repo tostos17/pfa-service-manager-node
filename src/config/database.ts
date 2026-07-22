@@ -1,7 +1,10 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
 dotenv.config();
+dns.setDefaultResultOrder('ipv4first');
 import { Role } from '../model/Role';
 import { User } from '../model/User';
 import { Parent } from '../model/Parent';
