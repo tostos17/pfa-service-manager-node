@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/tostos17/pfa-service-manager-node:latest
+    container_name: pfa-backend-prod
+    restart: always
+    environment:
+      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    networks:
+      - pfa-network
+
+  frontend:
+    image: ghcr.io/tostos17/pfa-react-app:latest
+    container_name: pfa-frontend-prod
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - pfa-network
+
+networks:
+  pfa-network:
+    driver: bridge
