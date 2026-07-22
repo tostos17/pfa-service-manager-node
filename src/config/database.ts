@@ -1,5 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
+import dotenv from 'dotenv';
+dotenv.config();
 import { Role } from '../model/Role';
 import { User } from '../model/User';
 import { Parent } from '../model/Parent';
@@ -33,26 +35,40 @@ import { MatchVideo } from '../model/MatchVideo';
 import { TrainingSession } from '../model/TrainingSession';
 import { TrainingAttendance } from '../model/TrainingAttendance';
 
-import dotenv from 'dotenv';
-dotenv.config();
+import { DataSourceOptions } from 'typeorm';
 
-export const AppDataSource = new DataSource({
-    type: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    username: process.env.DB_USERNAME || 'admin',
-    password: process.env.DB_PASSWORD || 'password',
-    database: process.env.DB_NAME || 'mydatabase',
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    synchronize: false, // Schema is managed by Flyway migrations!
-    logging: false,
-    entities: [
-        Role, User, Parent, Coach, Director, Admin, Player, PlayerProfile, Category, Account,
-        Session, Term, Invoice, Payment, PaymentAllocation, InvoicePayment,
-        AttendanceEvent, PlayerAttendanceLine, AcademyExpense, InformationHub,
-        Match, MatchEvent, MatchStateEvent, FreekickEvent, CardEvent, CornerEvent,
-        Goal, Substitution, MatchPhoto, MatchVideo, TrainingSession, TrainingAttendance
-    ],
-    migrations: [],
-    subscribers: []
-});
+const entities = [
+    Role, User, Parent, Coach, Director, Admin, Player, PlayerProfile, Category, Account,
+    Session, Term, Invoice, Payment, PaymentAllocation, InvoicePayment,
+    AttendanceEvent, PlayerAttendanceLine, AcademyExpense, InformationHub,
+    Match, MatchEvent, MatchStateEvent, FreekickEvent, CardEvent, CornerEvent,
+    Goal, Substitution, MatchPhoto, MatchVideo, TrainingSession, TrainingAttendance
+];
+
+const connectionOptions: DataSourceOptions = process.env.DATABASE_URL
+    ? {
+          type: 'postgres',
+          url: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false },
+          synchronize: false,
+          logging: false,
+          entities,
+          migrations: [],
+          subscribers: []
+      }
+    : {
+          type: 'postgres',
+          host: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '5432'),
+          username: process.env.DB_USERNAME || 'admin',
+          password: process.env.DB_PASSWORD || 'password',
+          database: process.env.DB_NAME || 'mydatabase',
+          ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+          synchronize: false,
+          logging: false,
+          entities,
+          migrations: [],
+          subscribers: []
+      };
+
+export const AppDataSource = new DataSource(connectionOptions);
