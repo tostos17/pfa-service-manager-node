@@ -5,6 +5,7 @@ import { Match } from '../model/Match';
 import { TrainingSession } from '../model/TrainingSession';
 import { Invoice } from '../model/Invoice';
 import { Payment } from '../model/Payment';
+import { TrainingAttendance } from '../model/TrainingAttendance';
 import { AppError } from '../error/AppError';
 
 export class PortalService {
@@ -42,6 +43,15 @@ export class PortalService {
         }
         const upcomingMatches = await matchRepository.find(matchQuery);
 
+        // Fetch count of missed training sessions
+        const missedTrainingsCount = await AppDataSource.getRepository(TrainingAttendance).count({
+            where: {
+                player: { id: userId },
+                attendeeType: 'PLAYER',
+                status: 'ABSENT'
+            }
+        });
+
         return {
             player: {
                 id: player.id,
@@ -64,6 +74,7 @@ export class PortalService {
                     category: player.playerProfile.category?.name || 'GENERAL'
                 } : null
             },
+            missedTrainingsCount,
             upcomingTrainings,
             upcomingMatches
         };
@@ -197,6 +208,15 @@ export class PortalService {
         }
         const upcomingMatches = await matchRepository.find(matchQuery);
 
+        // Fetch count of missed training sessions
+        const missedTrainingsCount = await AppDataSource.getRepository(TrainingAttendance).count({
+            where: {
+                player: { id: childId },
+                attendeeType: 'PLAYER',
+                status: 'ABSENT'
+            }
+        });
+
         return {
             child: {
                 id: child.id,
@@ -218,6 +238,7 @@ export class PortalService {
                     category: child.playerProfile.category?.name || 'GENERAL'
                 } : null
             },
+            missedTrainingsCount,
             upcomingTrainings,
             upcomingMatches
         };
