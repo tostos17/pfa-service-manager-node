@@ -19,7 +19,7 @@ export class BillingService {
 
         const currentTerm = await termRepository.findOne({ where: { isCurrentActive: true } });
         if (!currentTerm) {
-            throw new Error('Active term configuration mismatch. Please check calendar properties.');
+            return [];
         }
 
         const accounts = await accountRepository.find({ relations: ['player', 'player.playerProfile', 'player.playerProfile.category'] });

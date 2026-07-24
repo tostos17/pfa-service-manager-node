@@ -53,6 +53,7 @@ export class PortalService {
                 dateOfBirth: player.dateOfBirth,
                 status: player.status,
                 registrationDate: player.registrationDate,
+                passportUrl: player.passportUrl || null,
                 profile: player.playerProfile ? {
                     heightCm: player.playerProfile.heightCm,
                     weightKg: player.playerProfile.weightKg,
@@ -152,6 +153,7 @@ export class PortalService {
                 firstName: c.firstName,
                 lastName: c.lastName,
                 status: c.status,
+                passportUrl: c.passportUrl || null,
                 position: c.playerProfile?.position || null,
                 category: c.playerProfile?.category?.name || 'GENERAL'
             })),
@@ -205,6 +207,7 @@ export class PortalService {
                 phone: child.phone,
                 dateOfBirth: child.dateOfBirth,
                 status: child.status,
+                passportUrl: child.passportUrl || null,
                 profile: child.playerProfile ? {
                     heightCm: child.playerProfile.heightCm,
                     weightKg: child.playerProfile.weightKg,
