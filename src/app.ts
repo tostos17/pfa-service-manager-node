@@ -25,6 +25,16 @@ const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
+
+// Handle JSON body parsing errors (e.g. sending literal 'null' or malformed JSON) gracefully
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+        req.body = {};
+        return next();
+    }
+    next(err);
+});
+
 app.use(express.urlencoded({ extended: true }));
 
 // Route Mappings matching Java controller paths

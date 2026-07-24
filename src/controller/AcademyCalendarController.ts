@@ -26,10 +26,10 @@ router.get('/sessions/lastfive', async (req, res, next) => {
 
 router.post('/sessions', async (req, res, next) => {
     try {
-        const name = (req.body.name || req.query.name) as string;
-        const startDate = (req.body.startDate || req.query.startDate) as string;
-        const endDate = (req.body.endDate || req.query.endDate) as string;
-        const activities = (req.body.activities || req.query.activities) as string | undefined;
+        const name = (req.body?.name || req.query.name) as string;
+        const startDate = (req.body?.startDate || req.query.startDate) as string;
+        const endDate = (req.body?.endDate || req.query.endDate) as string;
+        const activities = (req.body?.activities || req.query.activities) as string | undefined;
         const savedSession = await academyCalendarService.initializeNewSession(name, startDate, endDate, activities);
         return res.send(`Session ${savedSession.name} initialized cleanly with 3 terms.`);
     } catch (err) {
