@@ -27,6 +27,8 @@ services:
       - "80:80"
     depends_on:
       - backend
+    volumes:
+      - ../../react/pfa-react-app/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - pfa-network
 
