@@ -2,9 +2,15 @@ import { AppDataSource } from '../config/database';
 import { Session } from '../model/Session';
 import { Term } from '../model/Term';
 import { financialAuditService } from './FinancialAuditService';
+import { appCache, CACHE_KEYS } from '../config/cache';
 
 export class AcademyCalendarService {
     async fetchSessionsFromCurrentForward() {
+        const cached = appCache.get<any[]>(CACHE_KEYS.ACTIVE_SESSION_TERMS);
+        if (cached) {
+            return cached;
+        }
+
         const sessionRepository = AppDataSource.getRepository(Session);
         const allSessions = await sessionRepository.find({
             order: { startDate: 'ASC' },
@@ -21,7 +27,9 @@ export class AcademyCalendarService {
             segments = allSessions.filter((s) => s.endDate && s.endDate >= today);
         }
 
-        return segments.map((s) => this.convertToDto(s));
+        const result = segments.map((s) => this.convertToDto(s));
+        appCache.set(CACHE_KEYS.ACTIVE_SESSION_TERMS, result);
+        return result;
     }
 
     async fetchLastFiveSessions() {
@@ -62,6 +70,8 @@ export class AcademyCalendarService {
         session.terms = [firstTerm, secondTerm, thirdTerm];
         await termRepository.save([firstTerm, secondTerm, thirdTerm]);
 
+        appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
+
         return session;
     }
 
@@ -100,6 +110,9 @@ export class AcademyCalendarService {
             await termRepository.save(firstTerm);
             await financialAuditService.generateTuitionInvoicesForTerm(firstTerm);
         }
+
+        appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
+    }
     }
 
     async deactivateSessionFramework(sessionId: number) {
@@ -122,6 +135,8 @@ export class AcademyCalendarService {
             }
         }
         await sessionRepository.save(targetSession);
+
+        appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
     }
 
     async activateTermWindow(termId: number) {
@@ -142,6 +157,8 @@ export class AcademyCalendarService {
         const newTerm = await termRepository.save(targetTerm);
 
         await financialAuditService.generateTuitionInvoicesForTerm(newTerm);
+
+        appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
     }
 
     async deactivateTermWindow(termId: number) {
@@ -154,6 +171,8 @@ export class AcademyCalendarService {
 
         targetTerm.isCurrentActive = false;
         await termRepository.save(targetTerm);
+
+        appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
     }
 
     async updateTermTimelineBounds(termId: number, startDate: string, endDate: string) {
@@ -171,6 +190,9 @@ export class AcademyCalendarService {
         targetTerm.startDate = startDate;
         targetTerm.endDate = endDate;
         await termRepository.save(targetTerm);
+
+        appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
+    }
     }
 
     private convertToDto(session: Session) {

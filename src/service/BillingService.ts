@@ -9,9 +9,15 @@ import { PlayerProfile } from '../model/PlayerProfile';
 import { randomUUID } from 'crypto';
 import { numberToWords } from '../utils/numberToWords';
 import * as fs from 'fs';
+import { appCache, CACHE_KEYS } from '../config/cache';
 
 export class BillingService {
     async calculateActiveTermLedgerMatrix() {
+        const cached = appCache.get<any[]>(CACHE_KEYS.LEDGER_SUMMARY);
+        if (cached) {
+            return cached;
+        }
+
         const termRepository = AppDataSource.getRepository(Term);
         const accountRepository = AppDataSource.getRepository(Account);
         const invoiceRepository = AppDataSource.getRepository(Invoice);
@@ -69,6 +75,7 @@ export class BillingService {
             });
         }
 
+        appCache.set(CACHE_KEYS.LEDGER_SUMMARY, ledgerMatrix);
         return ledgerMatrix;
     }
 
@@ -282,6 +289,8 @@ export class BillingService {
                 cashPool -= allocationAmount;
             }
 
+            appCache.del(CACHE_KEYS.LEDGER_SUMMARY);
+
             return {
                 id: Number(savedPayment.id),
                 amountPaid: savedPayment.amountPaid,
@@ -303,7 +312,9 @@ export class BillingService {
             status: 'UNSETTLED',
             createdAt: new Date()
         });
-        return await invoiceRepository.save(invoice);
+        const saved = await invoiceRepository.save(invoice);
+        appCache.del(CACHE_KEYS.LEDGER_SUMMARY);
+        return saved;
     }
 
     private mapToResponse(savedInvoice: Invoice, account: Account) {
@@ -346,21 +357,26 @@ export class BillingService {
         const term = payment.term;
         const session = term ? term.session : null;
 
-        let logoBase64 = '';
-        try {
-            const logoPath = '/home/fowobi/Pictures/pfa_logo.jpeg';
-            if (fs.existsSync(logoPath)) {
-                const logoBuffer = fs.readFileSync(logoPath);
-                logoBase64 = `data:image/jpeg;base64,${logoBuffer.toString('base64')}`;
-            } else {
-                const downloadPath = '/home/fowobi/Downloads/pfa_logo.jpeg';
-                if (fs.existsSync(downloadPath)) {
-                    const logoBuffer = fs.readFileSync(downloadPath);
+        let logoBase64 = appCache.get<string>(CACHE_KEYS.BASE64_LOGO) || '';
+        if (!logoBase64) {
+            try {
+                const logoPath = '/home/fowobi/Pictures/pfa_logo.jpeg';
+                if (fs.existsSync(logoPath)) {
+                    const logoBuffer = fs.readFileSync(logoPath);
                     logoBase64 = `data:image/jpeg;base64,${logoBuffer.toString('base64')}`;
+                } else {
+                    const downloadPath = '/home/fowobi/Downloads/pfa_logo.jpeg';
+                    if (fs.existsSync(downloadPath)) {
+                        const logoBuffer = fs.readFileSync(downloadPath);
+                        logoBase64 = `data:image/jpeg;base64,${logoBuffer.toString('base64')}`;
+                    }
                 }
+                if (logoBase64) {
+                    appCache.set(CACHE_KEYS.BASE64_LOGO, logoBase64);
+                }
+            } catch (e) {
+                console.error('Failed to read logo image:', e);
             }
-        } catch (e) {
-            console.error('Failed to read logo image:', e);
         }
 
         const amountFormatted = parseFloat(payment.amountPaid.toString()).toLocaleString('en-NG', {
