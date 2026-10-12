@@ -16,6 +16,7 @@ import infoHubRouter from './controller/InformationHubController';
 import categoryRouter from './controller/CategoryController';
 import trainingRouter from './controller/TrainingController';
 import portalRouter from './controller/PortalController';
+import staffRouter from './controller/StaffController';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -50,6 +51,7 @@ app.use('/api/v1/players', playerDataRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/trainings', trainingRouter);
 app.use('/api/v1/portal', portalRouter);
+app.use('/api/v1/admin/staff', staffRouter);
 app.use('/api/v1', infoHubRouter);
 
 // Global Error Handler

@@ -110,11 +110,21 @@ export class AuthService {
             throw new Error('Coach role not initialized');
         }
 
-        const hashedPassword = await bcrypt.hash(this.defaultPass, 10);
+        let employeeId = request.employeeId;
+        if (!employeeId) {
+            const nextvalResult = await AppDataSource.query("SELECT nextval('admin_id_seq') as nextval");
+            const sequenceNum = parseInt(nextvalResult[0].nextval);
+            const currentYear = new Date().getFullYear();
+            const paddedSeqNum = String(sequenceNum).padStart(4, '0');
+            employeeId = `COA-${currentYear}-${paddedSeqNum}`;
+        }
+
+        const rawPassword = request.password || this.defaultPass;
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const user = userRepository.create({
             username: request.username,
             password: hashedPassword,
-            requirePasswordChange: true,
+            requirePasswordChange: request.password ? false : true,
             roles: [coachRole]
         });
         const savedUser = await userRepository.save(user);
@@ -124,20 +134,21 @@ export class AuthService {
             firstName: request.firstName,
             lastName: request.lastName,
             email: request.email,
-            phone: request.phone,
-            specialization: request.specialization,
-            licenseLevel: request.licenseLevel,
+            phone: request.phone || '',
+            specialization: request.specialization || null,
+            employeeId: employeeId,
+            licenseLevel: request.licenseLevel || null,
             user: savedUser
         });
         await AppDataSource.getRepository(Coach).save(coach);
 
         const token = jwt.sign(
-            { id: user.id, username: user.username, roles: user.roles.map((r) => r.name) },
+            { id: savedUser.id, username: savedUser.username, roles: savedUser.roles.map((r) => r.name) },
             process.env.JWT_SECRET || 'supersecretkeyformigratedpfaapp',
             { expiresIn: '24h' }
         );
 
-        return { token, username: user.username };
+        return { token, username: savedUser.username, employeeId, coach };
     }
 
     async registerPlayer(request: any, fileBuffer?: Buffer, fileName?: string, fileMime?: string) {
@@ -299,17 +310,21 @@ export class AuthService {
             throw new Error('Director role not initialized');
         }
 
-        const nextvalResult = await AppDataSource.query("SELECT nextval('admin_id_seq') as nextval");
-        const sequenceNum = parseInt(nextvalResult[0].nextval);
-        const currentYear = new Date().getFullYear();
-        const paddedSeqNum = String(sequenceNum).padStart(4, '0');
-        const employeeId = `ADM-${currentYear}-${paddedSeqNum}`;
+        let employeeId = request.employeeId;
+        if (!employeeId) {
+            const nextvalResult = await AppDataSource.query("SELECT nextval('admin_id_seq') as nextval");
+            const sequenceNum = parseInt(nextvalResult[0].nextval);
+            const currentYear = new Date().getFullYear();
+            const paddedSeqNum = String(sequenceNum).padStart(4, '0');
+            employeeId = `DIR-${currentYear}-${paddedSeqNum}`;
+        }
 
-        const hashedPassword = await bcrypt.hash(this.defaultPass, 10);
+        const rawPassword = request.password || this.defaultPass;
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const user = userRepository.create({
             username: request.username,
             password: hashedPassword,
-            requirePasswordChange: true,
+            requirePasswordChange: request.password ? false : true,
             roles: [directorRole]
         });
         const savedUser = await userRepository.save(user);
@@ -324,7 +339,13 @@ export class AuthService {
         });
         await AppDataSource.getRepository(Director).save(director);
 
-        return { message: 'User created successfully' };
+        const token = jwt.sign(
+            { id: savedUser.id, username: savedUser.username, roles: savedUser.roles.map((r) => r.name) },
+            process.env.JWT_SECRET || 'supersecretkeyformigratedpfaapp',
+            { expiresIn: '24h' }
+        );
+
+        return { message: 'Director registered successfully', token, username: savedUser.username, employeeId, director };
     }
 
     async registerParent(request: any) {

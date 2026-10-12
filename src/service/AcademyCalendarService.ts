@@ -113,7 +113,6 @@ export class AcademyCalendarService {
 
         appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
     }
-    }
 
     async deactivateSessionFramework(sessionId: number) {
         const sessionRepository = AppDataSource.getRepository(Session);
@@ -192,7 +191,6 @@ export class AcademyCalendarService {
         await termRepository.save(targetTerm);
 
         appCache.del([CACHE_KEYS.ACTIVE_SESSION_TERMS, CACHE_KEYS.LEDGER_SUMMARY]);
-    }
     }
 
     private convertToDto(session: Session) {
