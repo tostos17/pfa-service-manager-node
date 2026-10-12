@@ -4,7 +4,7 @@ import { authenticateJwt, requireRoles } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/batch', authenticateJwt, requireRoles(['ADMIN', 'COACH']), async (req, res, next) => {
+router.post('/batch', authenticateJwt, requireRoles(['ADMIN', 'DIRECTOR', 'COACH']), async (req, res, next) => {
     try {
         await attendanceService.submitBatchAttendance(req.body);
         return res.send('Roster training attendance logged successfully.');

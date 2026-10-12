@@ -5,6 +5,28 @@ import { Player } from '../model/Player';
 import { Coach } from '../model/Coach';
 
 export class TrainingService {
+    isSessionEnded(session: { status: string; date?: string | Date; endTime?: string }): boolean {
+        if (!session) return false;
+        if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
+            return true;
+        }
+        if (session.date && session.endTime) {
+            try {
+                const dateStr = typeof session.date === 'string'
+                    ? session.date.substring(0, 10)
+                    : new Date(session.date).toISOString().substring(0, 10);
+                const timeStr = session.endTime.length === 5 ? `${session.endTime}:00` : session.endTime;
+                const endDateTime = new Date(`${dateStr}T${timeStr}`);
+                if (!isNaN(endDateTime.getTime()) && endDateTime.getTime() <= Date.now()) {
+                    return true;
+                }
+            } catch (e) {
+                // Ignore parse errors and fallback to status
+            }
+        }
+        return false;
+    }
+
     async createSession(data: any) {
         const sessionRepository = AppDataSource.getRepository(TrainingSession);
         const session = sessionRepository.create({
@@ -20,12 +42,16 @@ export class TrainingService {
 
     async getAllSessions() {
         const sessionRepository = AppDataSource.getRepository(TrainingSession);
-        return await sessionRepository.find({
+        const sessions = await sessionRepository.find({
             order: {
                 date: 'DESC',
                 startTime: 'DESC'
             }
         });
+        return sessions.map(s => ({
+            ...s,
+            isEnded: this.isSessionEnded(s)
+        }));
     }
 
     async getSessionById(id: number) {
@@ -47,7 +73,10 @@ export class TrainingService {
         const eligibleCoaches = await coachRepository.find();
 
         return {
-            session,
+            session: {
+                ...session,
+                isEnded: this.isSessionEnded(session)
+            },
             eligiblePlayers: eligiblePlayers.map(p => ({
                 id: Number(p.id),
                 firstName: p.firstName,
@@ -64,7 +93,7 @@ export class TrainingService {
         };
     }
 
-    async submitAttendance(sessionId: number, records: any[]) {
+    async submitAttendance(sessionId: number, records: any[], options?: { endSession?: boolean }) {
         return await AppDataSource.transaction(async (transactionManager) => {
             const sessionRepository = transactionManager.getRepository(TrainingSession);
             const attendanceRepository = transactionManager.getRepository(TrainingAttendance);
@@ -76,45 +105,143 @@ export class TrainingService {
                 throw new Error(`Training session not found with ID: ${sessionId}`);
             }
 
-            // Remove existing attendance records for clean/idempotent updates
-            await attendanceRepository.delete({ trainingSession: { id: sessionId } });
-
-            const newRecords: TrainingAttendance[] = [];
+            let savedCount = 0;
 
             for (const record of records) {
-                const attendee = attendanceRepository.create({
-                    trainingSession: session,
-                    attendeeType: record.attendeeType,
-                    status: record.status,
-                    remarks: record.remarks || null
-                });
-
                 if (record.attendeeType === 'PLAYER') {
-                    const player = await playerRepository.findOne({ where: { id: Number(record.id) } });
-                    if (!player) {
-                        throw new Error(`Player not found with ID: ${record.id}`);
+                    let attendee = await attendanceRepository.findOne({
+                        where: {
+                            trainingSession: { id: sessionId },
+                            player: { id: Number(record.id) }
+                        },
+                        relations: ['player']
+                    });
+
+                    if (!attendee) {
+                        const player = await playerRepository.findOne({ where: { id: Number(record.id) } });
+                        if (!player) {
+                            throw new Error(`Player not found with ID: ${record.id}`);
+                        }
+                        attendee = attendanceRepository.create({
+                            trainingSession: session,
+                            player,
+                            attendeeType: 'PLAYER',
+                            status: record.status || 'PRESENT',
+                            remarks: record.remarks !== undefined ? record.remarks : null
+                        });
+                    } else {
+                        attendee.status = record.status || attendee.status;
+                        if (record.remarks !== undefined) {
+                            attendee.remarks = record.remarks;
+                        }
                     }
-                    attendee.player = player;
+
+                    await attendanceRepository.save(attendee);
+                    savedCount++;
                 } else if (record.attendeeType === 'COACH') {
-                    const coach = await coachRepository.findOne({ where: { id: Number(record.id) } });
-                    if (!coach) {
-                        throw new Error(`Coach not found with ID: ${record.id}`);
+                    let attendee = await attendanceRepository.findOne({
+                        where: {
+                            trainingSession: { id: sessionId },
+                            coach: { id: Number(record.id) }
+                        },
+                        relations: ['coach']
+                    });
+
+                    if (!attendee) {
+                        const coach = await coachRepository.findOne({ where: { id: Number(record.id) } });
+                        if (!coach) {
+                            throw new Error(`Coach not found with ID: ${record.id}`);
+                        }
+                        attendee = attendanceRepository.create({
+                            trainingSession: session,
+                            coach,
+                            attendeeType: 'COACH',
+                            status: record.status || 'PRESENT',
+                            remarks: record.remarks !== undefined ? record.remarks : null
+                        });
+                    } else {
+                        attendee.status = record.status || attendee.status;
+                        if (record.remarks !== undefined) {
+                            attendee.remarks = record.remarks;
+                        }
                     }
-                    attendee.coach = coach;
+
+                    await attendanceRepository.save(attendee);
+                    savedCount++;
+                }
+            }
+
+            // Update session status appropriately
+            if (options?.endSession) {
+                session.status = 'COMPLETED';
+                await sessionRepository.save(session);
+            } else if (session.status === 'SCHEDULED' && savedCount > 0) {
+                session.status = 'IN_PROGRESS';
+                await sessionRepository.save(session);
+            }
+
+            return {
+                message: 'Attendance records logged successfully',
+                recordsCount: savedCount,
+                sessionStatus: session.status,
+                isEnded: this.isSessionEnded(session)
+            };
+        });
+    }
+
+    async endSession(sessionId: number, options?: { markUnrecordedAsAbsent?: boolean }) {
+        return await AppDataSource.transaction(async (transactionManager) => {
+            const sessionRepository = transactionManager.getRepository(TrainingSession);
+            const attendanceRepository = transactionManager.getRepository(TrainingAttendance);
+            const playerRepository = transactionManager.getRepository(Player);
+
+            const session = await sessionRepository.findOne({
+                where: { id: sessionId },
+                relations: ['attendanceLines', 'attendanceLines.player']
+            });
+
+            if (!session) {
+                throw new Error(`Training session not found with ID: ${sessionId}`);
+            }
+
+            if (options?.markUnrecordedAsAbsent) {
+                const eligiblePlayers = await playerRepository.find({ where: { status: 'ACTIVE' } });
+                const existingPlayerIds = new Set(
+                    (session.attendanceLines || [])
+                        .filter(l => l.attendeeType === 'PLAYER' && l.player)
+                        .map(l => Number(l.player?.id))
+                );
+
+                const absentRecords: TrainingAttendance[] = [];
+                for (const player of eligiblePlayers) {
+                    if (!existingPlayerIds.has(Number(player.id))) {
+                        absentRecords.push(
+                            attendanceRepository.create({
+                                trainingSession: session,
+                                player,
+                                attendeeType: 'PLAYER',
+                                status: 'ABSENT',
+                                remarks: 'Auto-marked absent upon session conclusion'
+                            })
+                        );
+                    }
                 }
 
-                newRecords.push(attendee);
+                if (absentRecords.length > 0) {
+                    await attendanceRepository.save(absentRecords);
+                }
             }
 
-            if (newRecords.length > 0) {
-                await attendanceRepository.save(newRecords);
-            }
-
-            // Automatically transition status to COMPLETED
             session.status = 'COMPLETED';
             await sessionRepository.save(session);
 
-            return { message: 'Attendance records logged successfully', recordsCount: newRecords.length };
+            return {
+                message: 'Training session concluded successfully',
+                session: {
+                    ...session,
+                    isEnded: true
+                }
+            };
         });
     }
 }
