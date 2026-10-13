@@ -24,6 +24,12 @@ export class Parent {
     @Column({ type: 'text', nullable: false })
     address!: string;
 
+    @Column({ length: 50, nullable: true })
+    relationship?: string;
+
+    @Column({ length: 100, nullable: true })
+    occupation?: string;
+
     @Column({ name: 'registration_date', type: 'timestamp', nullable: false })
     registrationDate!: Date;
 

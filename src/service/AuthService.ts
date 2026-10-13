@@ -362,11 +362,15 @@ export class AuthService {
             throw new Error('Parent role structure not initialized in database');
         }
 
-        const hashedPassword = await bcrypt.hash(this.defaultPass, 10);
+        // If a password is explicitly provided (e.g. from the new onboarding flow), use it;
+        // otherwise fall back to the legacy default with a forced change on first login.
+        const rawPassword = request.password || this.defaultPass;
+        const requireChange = !request.password;
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const user = userRepository.create({
             username: request.username,
             password: hashedPassword,
-            requirePasswordChange: true,
+            requirePasswordChange: requireChange,
             roles: [parentRole]
         });
         const savedUser = await userRepository.save(user);
@@ -379,6 +383,8 @@ export class AuthService {
             phone: request.phone,
             email: request.email,
             address: request.address,
+            relationship: request.relationship || null,
+            occupation: request.occupation || null,
             user: savedUser
         });
         await AppDataSource.getRepository(Parent).save(parent);
@@ -420,6 +426,8 @@ export class AuthService {
         parent.phone = request.phone;
         parent.email = request.email;
         parent.address = request.address;
+        if (request.relationship !== undefined) parent.relationship = request.relationship;
+        if (request.occupation !== undefined) parent.occupation = request.occupation;
 
         await userRepository.save(user);
         await parentRepository.save(parent);

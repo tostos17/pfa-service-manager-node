@@ -150,6 +150,8 @@ export class ParentProfileService {
             phone: parent.phone,
             email: parent.email,
             address: parent.address,
+            relationship: parent.relationship || null,
+            occupation: parent.occupation || null,
             registrationDate: parent.registrationDate
         };
     }

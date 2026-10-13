@@ -37,6 +37,7 @@ import { MatchPhoto } from '../model/MatchPhoto';
 import { MatchVideo } from '../model/MatchVideo';
 import { TrainingSession } from '../model/TrainingSession';
 import { TrainingAttendance } from '../model/TrainingAttendance';
+import { ParentOnboardingToken } from '../model/ParentOnboardingToken';
 
 import { DataSourceOptions } from 'typeorm';
 
@@ -45,7 +46,8 @@ const entities = [
     Session, Term, Invoice, Payment, PaymentAllocation, InvoicePayment,
     AttendanceEvent, PlayerAttendanceLine, AcademyExpense, InformationHub,
     Match, MatchEvent, MatchStateEvent, FreekickEvent, CardEvent, CornerEvent,
-    Goal, Substitution, MatchPhoto, MatchVideo, TrainingSession, TrainingAttendance
+    Goal, Substitution, MatchPhoto, MatchVideo, TrainingSession, TrainingAttendance,
+    ParentOnboardingToken
 ];
 
 const connectionOptions: DataSourceOptions = process.env.DATABASE_URL

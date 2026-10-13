@@ -156,7 +156,9 @@ export class PortalService {
                 lastName: parent.lastName,
                 email: parent.email,
                 phone: parent.phone,
-                address: parent.address
+                address: parent.address,
+                relationship: parent.relationship || null,
+                occupation: parent.occupation || null
             },
             children: children.map(c => ({
                 id: c.id,
